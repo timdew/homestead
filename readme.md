@@ -1,4 +1,4 @@
-<p align="center"><img src="https://laravel.com/assets/img/components/logo-homestead.svg"></p>
+<p align="center"><img src="/art/logo.svg"></p>
 
 <p align="center">
     <a href="https://github.com/laravel/homestead/actions">
@@ -22,8 +22,6 @@ Laravel Homestead is an official, pre-packaged Vagrant box that provides you a w
 Homestead runs on any Windows, Mac, or Linux system, and includes the Nginx web server, PHP 8.0, MySQL, Postgres, Redis, Memcached, Node, and all of the other goodies you need to develop amazing Laravel applications.
 
 Official documentation [is located here](https://laravel.com/docs/homestead).
-
-Ubuntu 20.04 can be found in the branch `20.04` 
 
 | Ubuntu LTS | Settler Version | Homestead Version | Branch      | Status
 | -----------| -----------     | -----------       | ----------- | -----------
