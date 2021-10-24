@@ -228,6 +228,13 @@ class Homestead
 
     # Install opt-in features
     if settings.has_key?('features')
+      if settings.has_key?('in-flight-service')
+        config.vm.provision 'shell' do |s|
+          s.name = 'Running our in-flight-service.'
+          s.path = script_dir + '/in-flight-service.sh'
+        end
+      end
+
       config.vm.provision "apt_update", type: "shell", inline: "apt-get update"
 
       # Ensure we have PHP versions used in sites in our features
