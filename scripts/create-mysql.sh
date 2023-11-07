@@ -2,30 +2,30 @@
 
 cat > /root/.my.cnf << EOF
 [client]
-user = homestead
+user = root
 password = secret
-host = localhost
+host = 127.0.0.1
 EOF
 
-cp /root/.my.cnf /home/vagrant/.my.cnf
+cat > /home/vagrant/.my.cnf << EOF
+[client]
+user = homestead
+password = secret
+host = 127.0.0.1
+EOF
 
-DB=$1;
+chown vagrant /home/vagrant/.my.cnf
 
-mysql=$(pidof mysqld)
-mariadb=$(pidof mariadbd)
+DB=$1
 
-if [ -z "$mysql" ]
-then
-      # Skip Creating MySQL database
-      echo "We didn't find a PID for mysqld, skipping \$DB creation"
+mariadb=$(ps ax | grep mariadb | wc -l)
+mysql=$(ps ax | grep mysql | wc -l)
+
+if [ "$mariadb" -gt 1 ]; then
+    mariadb -e "CREATE DATABASE IF NOT EXISTS \`$DB\` DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci"
+elif [ "$mysql" -gt 1 ]; then
+    mysql -e "CREATE DATABASE IF NOT EXISTS \`$DB\` DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci"
 else
-      mysql -e "CREATE DATABASE IF NOT EXISTS \`$DB\` DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci";
-fi
-
-if [ -z "$mariadb" ]
-then
-      # Skip Creating MariaDB database
-      echo "We didn't find a PID for mariadb, skipping \$DB creation"
-else
-      mysql -e "CREATE DATABASE IF NOT EXISTS \`$DB\` DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci";
+    # Skip Creating database
+    echo "We didn't find MariaDB (\$mariadb) or MySQL (\$mysql), skipping \`$DB\` creation"
 fi

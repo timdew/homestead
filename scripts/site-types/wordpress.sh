@@ -53,6 +53,15 @@ block="server {
     location = /favicon.ico { access_log off; log_not_found off; }
     location = /robots.txt  { allow all; access_log off; log_not_found off; }
 
+    location ~*/wp-content/uploads {
+        log_not_found off;
+        try_files \$uri @prod_site;
+    }
+
+    location @prod_site {
+        rewrite ^/(.*)$ https://${11}/$1 redirect;
+    }
+
     location ~ /.*\.(jpg|jpeg|png|js|css)$ {
         try_files \$uri =404;
     }
@@ -118,6 +127,8 @@ if ( ! defined( 'WP_CONTENT_DIR' ) ) {\\n\
 if ( ! defined( 'WP_CONTENT_URL' ) ) {\\n\
 	define( 'WP_CONTENT_URL', WP_HOME . '/wp-content' );\\n\
 }\\n\
+\\n\
+define( 'WP_DEBUG', true ); \\n\
 "
 
 
