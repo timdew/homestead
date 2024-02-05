@@ -19,7 +19,7 @@ class Homestead
     config.vm.define settings['name'] ||= 'homestead'
     config.vm.box = settings['box'] ||= 'laravel/homestead'
     unless settings.has_key?('SpeakFriendAndEnter')
-      config.vm.box_version = settings['version'] ||= '>= 13.0.0, < 14.0.0'
+      config.vm.box_version = settings['version'] ||= '>= 14.0.2, < 15.0.0'
     end
     config.vm.hostname = settings['hostname'] ||= 'homestead'
 
@@ -212,14 +212,20 @@ class Homestead
 
           if folder['type'] == 'nfs'
             mount_opts = folder['mount_options'] ? folder['mount_options'] : ['actimeo=1', 'nolock']
+
+            # Ubuntu 22.04 does not support NFS UDP, so we need to ensure it is disabled
+            nfs_options = {nfs_udp: false}
           elsif folder['type'] == 'smb'
             mount_opts = folder['mount_options'] ? folder['mount_options'] : ['vers=3.02', 'mfsymlinks']
 
             smb_creds = {smb_host: folder['smb_host'], smb_username: folder['smb_username'], smb_password: folder['smb_password']}
           end
-
+          
           # For b/w compatibility keep separate 'mount_opts', but merge with options
-          options = (folder['options'] || {}).merge({ mount_options: mount_opts }).merge(smb_creds || {})
+          options = (folder['options'] || {})
+            .merge({ mount_options: mount_opts })
+            .merge(smb_creds || {})
+            .merge(nfs_options || {})
 
           # Double-splat (**) operator only works with symbol keys, so convert
           options.keys.each{|k| options[k.to_sym] = options.delete(k) }
@@ -410,7 +416,7 @@ class Homestead
               site['to'],                 # $2
               site['port'] ||= http_port, # $3
               site['ssl'] ||= https_port, # $4
-              site['php'] ||= '8.2',      # $5
+              site['php'] ||= '8.3',      # $5
               params ||= '',              # $6
               site['xhgui'] ||= '',       # $7
               site['exec'] ||= 'false',   # $8
@@ -561,13 +567,18 @@ class Homestead
         end
 
         config.vm.provision 'shell' do |s|
+          s.inline = "echo \"\nenv[$1] = '$2'\" >> /etc/php/8.3/fpm/pool.d/www.conf"
+          s.args = [var['key'], var['value']]
+        end
+
+        config.vm.provision 'shell' do |s|
           s.inline = "echo \"\n# Set Homestead Environment Variable\nexport $1=$2\" >> /home/vagrant/.profile"
           s.args = [var['key'], var['value']]
         end
       end
 
       config.vm.provision 'shell' do |s|
-        s.inline = 'service php5.6-fpm restart;service php7.0-fpm restart;service  php7.1-fpm restart; service php7.2-fpm restart; service php7.3-fpm restart; service php7.4-fpm restart; service php8.0-fpm restart; service php8.1-fpm restart; service php8.2-fpm restart;'
+        s.inline = 'service php5.6-fpm restart;service php7.0-fpm restart;service php7.1-fpm restart; service php7.2-fpm restart; service php7.3-fpm restart; service php7.4-fpm restart; service php8.0-fpm restart; service php8.1-fpm restart; service php8.2-fpm restart; service php8.3-fpm restart;'
       end
     end
 
@@ -599,8 +610,13 @@ class Homestead
         end
       end
 
+      # Enable MySQL if MariaDB is not enabled
+      if (!enabled_databases.include? 'mysql') && (!enabled_databases.include? 'mariadb')
+        enabled_databases.push 'mysql'
+      end
+
       settings['databases'].each do |db|
-        if (enabled_databases.include? 'mysql') || (enabled_databases.include? 'mysql8') || (enabled_databases.include? 'mariadb')
+        if (enabled_databases.include? 'mysql') || (enabled_databases.include? 'mariadb')
           config.vm.provision 'shell' do |s|
             s.name = 'Creating MySQL / MariaDB Database: ' + db
             s.path = script_dir + '/create-mysql.sh'
@@ -691,6 +707,11 @@ class Homestead
 
           enabled_databases.push feature_name
         end
+      end
+
+      # Enable MySQL if MariaDB is not enabled
+      if (!enabled_databases.include? 'mysql') && (!enabled_databases.include? 'mariadb')
+        enabled_databases.push 'mysql'
       end
 
       # Loop over each DB
